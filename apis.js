@@ -152,26 +152,29 @@ class Apis {
     }
     let link = arr.pop();
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      await axios(
-        `${link}/banking/products?effective=ALL&product-category=${link[0]}\n`,
-        config
-      ).then(function (response) {
-        if (response.data.data.products.length > 0) {
-          const object = {
-            data: response.data.data.products,
-            link: link,
-          };
-          const jsonString = JSON.stringify(object);
-          allBanks.push(jsonString);
-          try {
-            Prodcuts.create({
-              data: jsonString,
-            });
-          } catch (error) {
-            console.log("SSS", error.message); //
-          }
-        }
+      types.map(async (type) => {
+        await axios
+          .get(
+            `${link}/banking/products?effective=ALL&product-category=${type}\n`,
+            {
+              headers: {
+                "Content-Type": "application/json; charset=utf-8 ",
+                "x-v": "3",
+              },
+            }
+          )
+          .then(async (response) => {
+            if (
+              response.data.data.products &&
+              response.data.data.products.length
+            ) {
+              const products = response.data.data.products;
+              products.map(async (product) => {
+                await this.getProducts(product.productId, link);
+              });
+            }
+          })
+          .catch((err) => {});
       });
     } catch (error) {
       console.log(error.message);
@@ -190,12 +193,20 @@ class Apis {
         "x-v": "3",
       },
     };
-    await axios(`${link}/banking/products/${id}`, config)
-      .then(function (response) {
-        console.log(JSON.stringify(response.data.data));
+    await axios(config)
+      .then(async (response) => {
+        const jsonString = JSON.stringify(response.data.data);
+
+        try {
+          await Prodcuts.create({
+            data: jsonString,
+          });
+        } catch (error) {
+          console.log("SSS", error.message);
+        }
       })
       .catch(function (error) {
-        console.log(error);
+        console.log(error.message);
       });
   }
 }
