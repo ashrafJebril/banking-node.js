@@ -129,51 +129,37 @@ const arr = [
   "https://secure.gmcu.com.au/OpenBanking/cds-au/v1",
   "https://public.cdr-api.86400.com.au/cds-au/v1",
 ];
-
-var myHeaders = new Headers();
-myHeaders.append("Content-Type", "application/json; charset=utf-8 ");
-myHeaders.append("x-v", "3");
-myHeaders.append("Access-Control-Allow-Origin", "*");
-var requestOptions = {
-  crossDomain: true,
-  method: "GET",
-  headers: myHeaders,
-  redirect: "follow",
-};
+var axios = require("axios");
+const types = [
+  "BUSINESS_LOANS",
+  "CRED_AND_CHRG_CARDS",
+  "RESIDENTIAL_MORTGAGES",
+];
 class Apis {
   constructor() {}
 
   async getBanks() {
+    var config = {
+      method: "get",
+      maxBodyLength: Infinity,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8 ",
+        "x-v": "3",
+      },
+    };
     if (arr.length === 0) {
       return;
     }
     let link = arr.pop();
-    var myHeaders = new Headers();
-
-    myHeaders.append("Content-Type", "application/json; charset=utf-8");
-    myHeaders.append("x-v", "3");
-
-    var requestOptions = {
-      method: "GET",
-      headers: myHeaders,
-      redirect: "follow",
-    };
-    // await new Promise((resolve) => setTimeout(resolve, 100));
-    const data = await fetch(
-      `${link}/banking/products?effective=ALL&product-category=BUSINESS_LOANS\n`,
-
-      requestOptions
-    )
-      .then((response) => {
-        if (response.status === 200) {
-          return response.text();
-        }
-        throw new Error("Request failed with status code: " + response.status);
-      })
-      .then((result) => {
-        if (JSON.parse(result).data.products.length > 0) {
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await axios(
+        `${link}/banking/products?effective=ALL&product-category=${link[0]}\n`,
+        config
+      ).then(function (response) {
+        if (response.data.data.products.length > 0) {
           const object = {
-            data: JSON.parse(result).data.products,
+            data: response.data.data.products,
             link: link,
           };
           const jsonString = JSON.stringify(object);
@@ -183,22 +169,34 @@ class Apis {
               data: jsonString,
             });
           } catch (error) {
-            console.log("SSS", error); //
+            console.log("SSS", error.message); //
           }
         }
-      })
-      .catch((error) => {
-        console.error(error);
       });
+    } catch (error) {
+      console.log(error.message);
+    }
 
     await this.getBanks();
     return allBanks;
   }
   async getProducts(id, link) {
-    return await fetch(`${link}/banking/products/${id}`, requestOptions)
-      .then((response) => response.text())
-      .then((result) => JSON.parse(result).data)
-      .catch((error) => console.log("error", error));
+    var config = {
+      method: "get",
+      maxBodyLength: Infinity,
+      url: `${link}/banking/products/${id}`,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8 ",
+        "x-v": "3",
+      },
+    };
+    await axios(`${link}/banking/products/${id}`, config)
+      .then(function (response) {
+        console.log(JSON.stringify(response.data.data));
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
   }
 }
 
